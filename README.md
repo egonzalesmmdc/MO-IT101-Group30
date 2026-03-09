@@ -4,10 +4,10 @@
 > Founded in 2020, MotorPH aims to be the top choice for Filipinos seeking competitive and affordable motorcycles. As the company expands its private transportation services, it requires a robust automated system to handle employee data and compensation. This repository contains the Phase 1 implementation of the MotorPH System. The primary goal is to transition from manual processing to an automated environment that ensures accuracy in time tracking and salary disbursement.
 
 ## Program Details
-> The MotorPH System is a console-based Java application that automates the core requirements of Phase 1: employee data management and weekly salary calculation.
+> The MotorPH System is a console-based Java application that automates the core requirements of Phase 1: Employee Data Management and Montly Salary Calculations (1st and 2nd Cutoff Pay).
 
 ### + Core Functionalities
-- Employee Information Display: Loads data from CSV files and presents employee numbers, full names, and birthdays in the prescribed format.
+- Employee Information Display: Loads data from CSV files and presents Employee Numbers, Full Names, and Birthdays in the prescribed format.
 - Time Tracking: Scans attendance records to calculate total hours worked. The system applies an 8:00 AM shift logic with a 10-minute grace period and a strict 5:00 PM cutoff.
 - Salary Automation:
 - - Gross Wage: Multiplies calculated work hours by the employee's hourly rate.
@@ -19,7 +19,7 @@
 #### [DOCUMENTATION OF MOTORPH SYSTEM - PHASE 1](https://drive.google.com/drive/folders/10RRjnKmBP6iueV_8aIb2IKCEDHv-ZxtT?usp=sharing)
 
 ### + Key Interface Highlights
-- Authentication Layer: Displays the login prompt for employee and payroll_staff roles, including error handling for incorrect credentials.
+- Authentication Layer: Displays the login prompt for "employee" and "payroll_staff" roles, including error handling for incorrect credentials.
 - Employee Information Display: Shows the "Employee Details" output, verifying that the system correctly parses names and birthdays from the CSV file.
 - Payroll Processing (Single/Bulk):
 - - Screenshots of the console output for a single employee lookup.
