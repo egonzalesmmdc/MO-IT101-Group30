@@ -13,10 +13,13 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
+
 public class MotorPHSystem {
-    
-    // Global arrays that store all employee information and attendance records loaded from CSV files.
-    // Each row represents one record while each column represents a specific data field.
+
+    /*
+    Global arrays that store all employee information and attendance records loaded from CSV files.
+    Each row represents one record while each column represents a specific data field.
+    */
     static String [][] employeeData = new String[35][19]; // Stores employee details loaded from the employee CSV file.
     static String [][] attendanceData = new String[5169][6]; // Stores daily attendance records loaded from the attendance CSV file.
 
@@ -31,9 +34,11 @@ public class MotorPHSystem {
         // Initialize system by loading data from external CSV files.
         loadEmployeeData("Data/MotorPH_Employee Data - Employee Details.csv");
         loadAttendanceData("Data/MotorPH_Employee Data - Attendance Record.csv");
-        
-        // Prompts the user to enter login credentials and verifies whether the user is an employee or payroll staff member before directing them to the appropriate system menu.
-        // LOGIN PRINT OUTCOME
+
+        /*
+        Prompts the user to enter login credentials and verifies whether the user is an employee or payroll staff member before directing them to the appropriate system menu.
+        LOGIN PRINT OUTCOME
+        */
         Scanner InputScanner = new Scanner(System.in);
         System.out.println("------ MOTORPH SYSTEM LOGIN ------");
         System.out.print("Username: ");
@@ -121,10 +126,12 @@ public class MotorPHSystem {
         }
             System.exit(0);
     } 
+
     
-    
-     // Calculates and displays payroll information for a specific employee. 
-     // This method computes total hours worked for each payroll cutoff, calculates gross salary, applies government deductions, and determines the final net salary.
+    /*
+    Calculates and displays payroll information for a specific employee. 
+    This method computes total hours worked for each payroll cutoff, calculates gross salary, applies government deductions, and determines the final net salary.
+    */
     static void calculateAndDisplayPayroll(int employeeIndex) {
         String employeeNumber = employeeData[employeeIndex][0];
         String firstName = employeeData[employeeIndex][2];
@@ -172,8 +179,7 @@ public class MotorPHSystem {
             pagIbigContribution = 0;}
             
             // Calculate TAX based on the income remaining after mandatory government contributions.
-            double taxableIncome = monthlyGrossTotal - (sssContribution + philHealthContribution + pagIbigContribution);
-            double withholdingTax = calculateWithholdingTax (taxableIncome);
+            double withholdingTax = calculateWithholdingTax (monthlyGrossTotal, sssContribution, philHealthContribution, pagIbigContribution);
             double totalDeductions = sssContribution + philHealthContribution + pagIbigContribution + withholdingTax;
             double netSalaryCutoff2 = grossSalaryCutoff2 - totalDeductions; // FINAL NET SALARY for the 2nd Cutoff.
             
@@ -192,9 +198,11 @@ public class MotorPHSystem {
         }
     }
     
-    
-    // Reads the employee details CSV file line by line and stores each record into the employeeData array. 
-    // The first row is skipped because it contains column headers.
+
+    /*
+    Reads the employee details CSV file line by line and stores each record into the employeeData array. 
+    The first row is skipped because it contains column headers.
+    */
     static void loadEmployeeData(String FileName) {
         try (BufferedReader br = new BufferedReader(new FileReader(FileName))) {
             br.readLine();
@@ -222,8 +230,10 @@ public class MotorPHSystem {
     }
     
     
-    // Searches the employeeData array for a specific employee number and returns the index of the matching record. 
-    // Returns -1 if the employee does not exist in the system.
+    /*
+     Searches the employeeData array for a specific employee number and returns the index of the matching record. 
+    Returns -1 if the employee does not exist in the system.
+    */
     static int findEmployeeIndex(String employeeNumber) {
         for (int i = 0; i < totalEmployees; i++) {
             if (employeeData[i][0].equals(employeeNumber)) return i;
@@ -378,11 +388,8 @@ public class MotorPHSystem {
 
     
     // Computes the withholding tax based on Philippine tax brackets after deducting mandatory government contributions from the salary.
-    public static double calculateWithholdingTax(double Salary) {
-        double SSS = calculateSSS(Salary);
-        double PhilHealth = calculatePhilHealth(Salary);
-        double PagIbig = calculatePagIbig(Salary);
-        double taxableIncome = Salary - (SSS + PhilHealth + PagIbig);
+    public static double calculateWithholdingTax(double monthlyGross, double sss, double ph, double pi) {
+        double taxableIncome = monthlyGross - (sss + ph + pi);
         
         if (taxableIncome <= 20832) {
             return 0;
