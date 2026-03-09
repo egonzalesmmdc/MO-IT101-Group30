@@ -14,6 +14,18 @@
 - - Deductions: Applies statutory Philippine deductions (SSS, PhilHealth, Pag-IBIG) and withholding tax.
 - - Net Salary: Computes the final take-home pay after all generic and mandatory deductions.
  
+## System Walkthrough & Screenshots
+> The following link contains high-resolution screenshots of the system's execution flow. Each image captures a specific milestone in the user journey—from the initial login to the final net salary generation.
+#### [DOCUMENTATION OF MOTORPH SYSTEM - PHASE 1](https://drive.google.com/drive/folders/10RRjnKmBP6iueV_8aIb2IKCEDHv-ZxtT?usp=sharing)
+
+### + Key Interface Highlights
+- Authentication Layer: Displays the login prompt for employee and payroll_staff roles, including error handling for incorrect credentials.
+- Employee Information Display: Shows the "Employee Details" output, verifying that the system correctly parses names and birthdays from the CSV file.
+- Payroll Processing (Single/Bulk):
+- - Screenshots of the console output for a single employee lookup.
+- - Screenshots showing the automated loop for all employees, featuring the "Payroll Processing Status: Finished" confirmation.
+- Deduction Breakdown: Visual evidence of the itemized SSS, PhilHealth, Pag-IBIG, and Withholding Tax calculations.
+ 
 ## Team Details: GROUP 30
 > The development of this system was divided among the following members:
 
@@ -30,6 +42,3 @@
 > You can access the live tracking of this development via the link below. This document reflects real-time updates as we complete specific MotorPH requirements and system milestones.
 #### [PROJECT PLAN LINK](https://docs.google.com/spreadsheets/d/1Cc4IPmUY1yKCRLq9AjWWywvPiit5ydBFOYIVEF-JsVg/edit?usp=sharing)
 
-## Documentation
-> The following link contains high-resolution screenshots of the system's execution flow. Each image captures a specific milestone in the user journey—from the initial login to the final net salary generation.
-#### [DOCUMENTATION OF MOTORPH SYSTEM - PHASE 1](https://drive.google.com/drive/folders/10RRjnKmBP6iueV_8aIb2IKCEDHv-ZxtT?usp=sharing)
