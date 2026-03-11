@@ -35,7 +35,7 @@
 ### Karl De Pano
 - KEY CONTRIBUTIONS: Implemented 10-minute grace period logic, gross salary formulas, and final net salary calculations.
 
-### Ken Adrian Villamor
+### Ken Andrian Villamor
 - KEY CONTRIBUTIONS: Developed work hour computation, payroll processing menus (Solo/All employees), and CSV file reading modules.
 
 ## Project Plan
