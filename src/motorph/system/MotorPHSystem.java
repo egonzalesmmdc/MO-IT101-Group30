@@ -8,6 +8,8 @@ package motorph.system;
  *
  * @author Group 30 - Gonzales, De Pano, Villamor
  */
+
+// Import necessary libraries for user input, file reading, and dynamic lists.
 import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -17,19 +19,35 @@ import java.util.List;
 
 public class MotorPHSystem {
 
+    /*
+    Lists used to store employee records and attendance records loaded from CSV files.
+    Each record is stored as a String array representing one row of the CSV file.
+    */
     static List<String[]> employeeList = new ArrayList<>();
     static List<String[]> attendanceList = new ArrayList<>();
     
-    // Main method that initializes the system by loading employee and attendance data, then handles the login process to determine whether the user is an employee or payroll staff member.
+    /*
+    Main method that starts the MotorPH Payroll System.
+
+    The system performs the following steps:
+    1. Load employee records from the employee CSV file.
+    2. Load attendance records from the attendance CSV file.
+    3. Prompt the user to log in using a username and password.
+    4. Determine whether the user is an employee or payroll staff.
+    5. Redirect the user to the appropriate system menu.
+    */
     public static void main(String[] args) {
         
-        // Initialize system by loading data from external CSV files.
+        /*
+        Load employee and attendance data from external CSV files into memory.
+        This allows the system to process payroll and employee information.
+        */
         loadEmployeeData("Data/MotorPH_Employee Data - Employee Details.csv");
         loadAttendanceData("Data/MotorPH_Employee Data - Attendance Record.csv");
 
         /*
-        Prompts the user to enter login credentials and verifies whether the user is an employee or payroll staff member before directing them to the appropriate system menu.
-        LOGIN PRINT OUTCOME
+        Display the login interface and ask the user to enter credentials.
+        The credentials determine whether the user can access employee functions or payroll staff functions.
         */
         Scanner inputScanner = new Scanner(System.in);
         System.out.println("------| MOTORPH SYSTEM LOGIN |------");
@@ -47,35 +65,55 @@ public class MotorPHSystem {
             }
         } else {
             System.out.println("Error: Incorrect Username and/or Password"); // Error message will appear if there a different input in the username/password.
+            
+            /*
+            Immediately stops the program when login credentials are incorrect.
+            Exit code 0 means the program ended normally.
+            */
             System.exit(0);
         }
     }
     
     
-    // Handles the employee login workflow by asking for an employee number, searching the employee data array, and displaying basic employee details if a valid record is found.
+    /*
+    Handles the employee login workflow.
+    The system asks the employee to input their employee number, searches the employee list, and displays basic employee information such as employee number, full name, and birthday if the record exists.
+    */
     static void handleEmployeeLogin(Scanner inputScanner) {
         System.out.println("");
         System.out.print("Welcome!");
         System.out.print("\nEnter Employee Number: ");
         String employeeNumber = inputScanner.nextLine();
-        int employeeIndex = findEmployeeIndex(employeeNumber); // Search for the employee in the loaded data.
+        int employeeIndex = findEmployeeIndex(employeeNumber); // Search for the employee's record in the employee list.
         
         // EMPLOYEE DETAILS PRINT OUTCOME
         if (employeeIndex != -1) {
             String[] employeeDetails = employeeList.get(employeeIndex);
             System.out.println("");
             System.out.println("------| EMPLOYEE DETAILS |------");
+            
+            /*
+            Index 0 stores the employee number in the CSV structure.
+            This index is used as the unique identifier for locating employee records.
+            */
             System.out.println("Employee Number: " + employeeDetails[0]);
             System.out.println("Employee Full Name: " + employeeDetails[2] + " " + employeeDetails[1]);
-            System.out.println("Birthday: " + formatBirthdayDate(employeeDetails[3]));
+            System.out.println("Birthday: " + formatBirthdayDate(employeeDetails[3])); // Convert the stored birthday format into a readable format.
         } else {
             System.out.println("Error: Employee Number Does Not Exist"); // Error message will appear if an employee inputs an employee number not present in the system.
         }
-        System.exit(0);
+        System.exit(0); // Program ended normally.
     }
     
     
-    // Handles payroll staff operations by displaying menu options that allow the user to process payroll for a single employee or for all employees in the system.
+    /*
+    Handles payroll staff operations.
+
+    Payroll staff members are given menu options to:
+    1. Process payroll for a single employee.
+    2. Process payroll for all employees in the system.
+    3. Exit the program.
+    */
      static void handlePayrollStaffLogin(Scanner inputScanner) {
         System.out.println("");
         System.out.print("Welcome!");
@@ -88,7 +126,7 @@ public class MotorPHSystem {
             System.out.print("Select: ");
             String subChoice = inputScanner.nextLine();
             
-            // Process payroll for a SPECIFIC ID.
+            // Process payroll for ONE SPECIFIC EMPLOYEE.
             if (subChoice.equals("1")) {
                 System.out.print("Enter Employee Number: ");
                 String employeeNumber = inputScanner.nextLine();
@@ -117,20 +155,33 @@ public class MotorPHSystem {
         } else {
             System.out.println("Error: Invalid Choice. Please Select A Valid Option From The List..."); // Error message will appear if an option other than the ones present is submitted.
         }
-            System.exit(0);
+            System.exit(0); // Program ended normally.
     } 
 
     
     /*
-    Calculates and displays payroll information for a specific employee. 
-    This method computes total hours worked for each payroll cutoff, calculates gross salary, applies government deductions, and determines the final net salary.
+    Calculates and displays payroll information for a specific employee.
+
+    The method performs the following steps:
+    - Retrieves the employee's hourly rate.
+    - Computes total hours worked for each payroll cutoff.
+    - Calculates gross salary.
+    - Applies government deductions.
+    - Computes withholding tax.
+    - Displays the final net salary.
     */
     static void calculateAndDisplayPayroll(int employeeIndex) {
         String[] currentEmployee = employeeList.get(employeeIndex);
         String employeeNumber = currentEmployee[0];
         String firstName = currentEmployee[2];
         String lastName = currentEmployee[1];
-        double hourlyRate = Double.parseDouble(currentEmployee[18].replace(",", "")); // Remove commas from the HOURLY RATE string before converting to a number
+        
+        /*
+        Column index 18 contains the hourly salary rate in the employee CSV file.
+        Commas are removed because salary values may include thousands separators.
+        */
+        double hourlyRate = Double.parseDouble(currentEmployee[18].replace(",", "")); 
+
         
         // EMPLOYEE DETAILS IN PAYROLL PROCESSING PRINT OUTCOME
         System.out.println("\n------------------------------");
@@ -154,7 +205,7 @@ public class MotorPHSystem {
             System.out.println("1st Cutoff Date: " + monthLabel + " " + "15");
             System.out.println("Total Hours Worked: " + workedHoursCutoff1);
             System.out.println("Gross Salary: PHP " + grossSalaryCutoff1);
-            System.out.println("Net Salary: PHP " + grossSalaryCutoff1);
+            System.out.println("Net Salary: PHP " + grossSalaryCutoff1); // No deductions are applied in the first cutoff.
             
             // 2nd Cutoff: Days 16 - 31
             double workedHoursCutoff2 = getTotalHoursWorked(employeeNumber, month, 16, 31);
@@ -193,16 +244,20 @@ public class MotorPHSystem {
     }
     
 
-    /*
-    Reads the employee details CSV file line by line and stores each record into the employeeData array. 
-    The first row is skipped because it contains column headers.
-    */
-    static void loadEmployeeData(String fileName) {
+    
+    static void loadEmployeeData(String fileName) { // Reads the employee CSV file and loads each employee record into the employeeList.
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+
+            // Skip the first line because it contains column headers.
             br.readLine();
             String line;
             while ((line = br.readLine()) != null ){
-                String[] data = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"); // Regex splits by comma but ignores commas inside the double quotes.
+                
+            /*
+            Split the CSV row using a regex that ignores commas inside quotation marks.
+            This prevents incorrect splitting when fields such as addresses contain commas.
+            */
+                String[] data = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"); 
             for (int i = 0; i < data.length; i++) {
                 data[i] = data[i].replace("\"", "").trim();
             }
@@ -214,9 +269,11 @@ public class MotorPHSystem {
     }
     
     
-    // Reads the attendance CSV file and stores each attendance record into the attendanceData array for later payroll calculations.
+    // Reads the attendance CSV file and stores each record into the attendanceList.
     static void loadAttendanceData(String fileName) {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+
+            // Skip header row because it only contains column names.
             br.readLine();
             String line;
             while ((line = br.readLine()) != null ){
@@ -229,14 +286,14 @@ public class MotorPHSystem {
     
     
     /*
-     Searches the employeeData array for a specific employee number and returns the index of the matching record. 
-    Returns -1 if the employee does not exist in the system.
+    Searches the employee list for a specific employee number.
+    Returns the index of the employee if found, otherwise returns -1.
     */
     static int findEmployeeIndex(String employeeNumber) {
        for (int i = 0; i < employeeList.size(); i++) {
             if (employeeList.get(i)[0].equals(employeeNumber)) return i;
         }
-        return -1;
+        return -1; // Returning -1 signals that the employee number was not found after checking all records in the employee list.
     }
     
     
@@ -247,8 +304,10 @@ public class MotorPHSystem {
     }
     
     
-    // Returns the name of the month for a given number.
+    // Returns the month name corresponding to a numeric month value.
     static String getMonthNameLabel(int monthNumber) {
+
+        // The first index is intentionally left empty so that the array index directly matches real calendar months (1 = January, 2 = February, etc.).
         String[] months = {"", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
         return months[monthNumber];
     }
@@ -259,7 +318,8 @@ public class MotorPHSystem {
         double accumulatedHours = 0;
         for (int i = 0; i < attendanceList.size(); i++) {
             String[] record = attendanceList.get(i);
-            
+
+            // Attendance record index 0 stores the employee number.
             if (record[0].equals(employeeNumber)) {
                 String[] dateParts = record[3].split("/");
                 int month = Integer.parseInt(dateParts[0]);
@@ -304,7 +364,8 @@ public class MotorPHSystem {
 
         int startTotalMinutes = (8 * 60) + effectiveMinuteIn;
         int endTotalMinutes = (effectiveHourOut * 60) + effectiveMinuteOut;
-        
+
+        // Deduct a 1-hour unpaid lunch break if the employee worked more than 4 hours.
         double totalMinutes = endTotalMinutes - startTotalMinutes; 
         if (totalMinutes > 240){
         totalMinutes -=60; 
