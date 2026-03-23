@@ -5,50 +5,43 @@
 package motorph.system;
 
 /**
- *
+ * MotorPH Payroll System
  * @author Group 30 - Gonzales, De Pano, Villamor
  */
-
-// Import necessary libraries for user input, file reading, and dynamic lists.
 import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.Duration;
+import java.text.DecimalFormat; // Added this to handle commas without rounding
 
 public class MotorPHSystem {
+    
+    static final int LUNCH_THRESHOLD_MINS = 240; 
+    static final int LUNCH_DEDUCTION_MINS = 60;
+    static final int SHIFT_END_HOUR = 17;
+    static final int GRACE_PERIOD_LIMIT = 10;
 
-    /*
-    Lists used to store employee records and attendance records loaded from CSV files.
-    Each record is stored as a String array representing one row of the CSV file.
-    */
     static List<String[]> employeeList = new ArrayList<>();
     static List<String[]> attendanceList = new ArrayList<>();
     
-    /*
-    Main method that starts the MotorPH Payroll System.
-
-    The system performs the following steps:
-    1. Load employee records from the employee CSV file.
-    2. Load attendance records from the attendance CSV file.
-    3. Prompt the user to log in using a username and password.
-    4. Determine whether the user is an employee or payroll staff.
-    5. Redirect the user to the appropriate system menu.
-    */
+    // Creates a formatter that adds commas and shows unrounded decimals
+    static final DecimalFormat moneyFormat = new DecimalFormat("#,##0.00##############");
+    static final DecimalFormat hoursFormat = new DecimalFormat("#,##0.################");
+    
+    /**
+     * Main entry point of the system.
+     * Initializes data from CSV files and handles the main login portal.
+     * @param args
+     */
     public static void main(String[] args) {
-        
-        /*
-        Load employee and attendance data from external CSV files into memory.
-        This allows the system to process payroll and employee information.
-        */
         loadEmployeeData("Data/MotorPH_Employee Data - Employee Details.csv");
         loadAttendanceData("Data/MotorPH_Employee Data - Attendance Record.csv");
 
-        /*
-        Display the login interface and ask the user to enter credentials.
-        The credentials determine whether the user can access employee functions or payroll staff functions.
-        */
         Scanner inputScanner = new Scanner(System.in);
         System.out.println("------| MOTORPH SYSTEM LOGIN |------");
         System.out.print("Username: ");
@@ -56,7 +49,7 @@ public class MotorPHSystem {
         System.out.print("Password: ");
         String password = inputScanner.nextLine();
         
-        // Check user credentials and direct to the appropriate menu.
+        // Authenticate user role
         if ((username.equals("employee") || username.equals("payroll_staff")) && password.equals("12345")){
             if (username.equals("employee")){
                 handleEmployeeLogin(inputScanner);
@@ -64,267 +57,239 @@ public class MotorPHSystem {
                 handlePayrollStaffLogin(inputScanner);
             }
         } else {
-            System.out.println("Error: Incorrect Username and/or Password"); // Error message will appear if there a different input in the username/password.
-            
-            /*
-            Immediately stops the program when login credentials are incorrect.
-            Exit code 0 means the program ended normally.
-            */
+            System.out.println("Error: Incorrect Username and/or Password");
             System.exit(0);
         }
     }
     
+    /**
+     * Helper method to safely prompt for and validate integer input.
+     * Prevents system crashes from non-numeric user entries.
+     */
+    static int getSafeInt(Scanner scanner, String prompt, int min, int max) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                int value = Integer.parseInt(scanner.nextLine().trim());
+                if (value >= min && value <= max) return value;
+                System.out.println("Error: Invalid Choice. Please Select A Valid Option From The List..." + min + "-" + max + ".");
+            } catch (NumberFormatException e) {
+                System.out.println("Error: Please enter a valid number.");
+            }
+        }
+    }
     
-    /*
-    Handles the employee login workflow.
-    The system asks the employee to input their employee number, searches the employee list, and displays basic employee information such as employee number, full name, and birthday if the record exists.
-    */
+    /**
+     * Handles the workflow for standard employees.
+     * Searches for the inputted employee ID and displays their basic details.
+     */
     static void handleEmployeeLogin(Scanner inputScanner) {
         System.out.println("");
         System.out.print("Welcome!");
         System.out.print("\nEnter Employee Number: ");
         String employeeNumber = inputScanner.nextLine();
-        int employeeIndex = findEmployeeIndex(employeeNumber); // Search for the employee's record in the employee list.
+        int employeeIndex = findEmployeeIndex(employeeNumber); 
         
-        // EMPLOYEE DETAILS PRINT OUTCOME
         if (employeeIndex != -1) {
             String[] employeeDetails = employeeList.get(employeeIndex);
             System.out.println("");
             System.out.println("------| EMPLOYEE DETAILS |------");
-            
-            /*
-            Index 0 stores the employee number in the CSV structure.
-            This index is used as the unique identifier for locating employee records.
-            */
             System.out.println("Employee Number: " + employeeDetails[0]);
             System.out.println("Employee Full Name: " + employeeDetails[2] + " " + employeeDetails[1]);
-            System.out.println("Birthday: " + formatBirthdayDate(employeeDetails[3])); // Convert the stored birthday format into a readable format.
+            System.out.println("Birthday: " + formatBirthdayDate(employeeDetails[3]));
         } else {
-            System.out.println("Error: Employee Number Does Not Exist"); // Error message will appear if an employee inputs an employee number not present in the system.
+            System.out.println("Error: Employee Number Does Not Exist"); 
         }
-        System.exit(0); // Program ended normally.
+        System.exit(0);
     }
     
-    
-    /*
-    Handles payroll staff operations.
-
-    Payroll staff members are given menu options to:
-    1. Process payroll for a single employee.
-    2. Process payroll for all employees in the system.
-    3. Exit the program.
-    */
-     static void handlePayrollStaffLogin(Scanner inputScanner) {
+    /**
+     * Handles the interactive menu for payroll staff operations.
+     * Allows processing of single or batch payrolls.
+     */
+    static void handlePayrollStaffLogin(Scanner inputScanner) {
         System.out.println("");
         System.out.print("Welcome!");
         System.out.println("\n1. Process Payroll \n2. Exit the Program");
-        System.out.print("Select: ");
-        String choice = inputScanner.nextLine();
+        
+        int choice = getSafeInt(inputScanner, "Select: ", 1, 2);
 
-        if (choice.equals("1")) {
-            System.out.println("\n1. One Employee \n2. All Employees \n3. Exit the Program");
-            System.out.print("Select: ");
-            String subChoice = inputScanner.nextLine();
-            
-            // Process payroll for ONE SPECIFIC EMPLOYEE.
-            if (subChoice.equals("1")) {
-                System.out.print("Enter Employee Number: ");
-                String employeeNumber = inputScanner.nextLine();
-                int employeeIndex = findEmployeeIndex(employeeNumber);
-                if (employeeIndex != -1) {
-                    calculateAndDisplayPayroll(employeeIndex);
-                } else {
-                    System.out.println("Error: Employee Number Does Not Exist"); // Error message will appear if a payroll staff inputs an employee number not present in the system.
+        switch (choice) {
+            case 1 -> {
+                System.out.println("\n1. One Employee \n2. All Employees \n3. Exit the Program");
+                int subChoice = getSafeInt(inputScanner, "Select: ", 1, 3);
+                switch (subChoice) {
+                    case 1 -> {
+                        System.out.print("Enter Employee Number: ");
+                        String employeeNumber = inputScanner.nextLine();
+                        int employeeIndex = findEmployeeIndex(employeeNumber);
+                        if (employeeIndex != -1) {
+                            calculateAndDisplayPayroll(employeeIndex);
+                        } else {
+                            System.out.println("Error: Employee Number Does Not Exist"); 
+                        }
                 }
-            } else if (subChoice.equals("2")) { // Loop through EVERY EMPLOYEE IN THE SYSTEM to calculate salaries.
-                for (int i = 0; i < employeeList.size(); i++) {
-                    calculateAndDisplayPayroll(i);
-                } 
-                System.out.println("\nPayroll Processing Status: Finished");
-            } else if (subChoice.equals("3")) {
+                    case 2 -> {
+                        // Batch processing for all employees
+                        for (int i = 0; i < employeeList.size(); i++) {
+                            calculateAndDisplayPayroll(i);
+                        } 
+                        System.out.println("\nPayroll Processing Status: Finished");
+                }
+                    case 3 -> {
+                        System.out.println("Thank You!");
+                        System.out.println("------| EXITED PROGRAM |------");
+                        System.exit(0);
+                }
+                }
+                // Ends the 'case 1' for the main menu
+            }
+            case 2 -> {
                 System.out.println("Thank You!");
                 System.out.println("------| EXITED PROGRAM |------");
-                System.exit(0); 
-            } else {
-            System.out.println("Error: Invalid Choice. Please Select A Valid Option From The List...");} // Error message will appear if an option other than the ones present is submitted.
-            
-        } else if (choice.equals("2")) {
-            System.out.println("Thank You!");
-            System.out.println("------| EXITED PROGRAM |------");
-            System.exit(0);
-        } else {
-            System.out.println("Error: Invalid Choice. Please Select A Valid Option From The List..."); // Error message will appear if an option other than the ones present is submitted.
+                System.exit(0);
+            }
         }
-            System.exit(0); // Program ended normally.
-    } 
+        System.exit(0);
+    }
 
-    
-    /*
-    Calculates and displays payroll information for a specific employee.
-
-    The method performs the following steps:
-    - Retrieves the employee's hourly rate.
-    - Computes total hours worked for each payroll cutoff.
-    - Calculates gross salary.
-    - Applies government deductions.
-    - Computes withholding tax.
-    - Displays the final net salary.
-    */
+    /**
+     * Calculates and displays the complete payroll breakdown for a specific employee.
+     * Processes both standard 15-day cutoffs and applies statutory deductions.
+     */
     static void calculateAndDisplayPayroll(int employeeIndex) {
         String[] currentEmployee = employeeList.get(employeeIndex);
         String employeeNumber = currentEmployee[0];
         String firstName = currentEmployee[2];
         String lastName = currentEmployee[1];
         
-        /*
-        Column index 18 contains the hourly salary rate in the employee CSV file.
-        Commas are removed because salary values may include thousands separators.
-        */
         double hourlyRate = Double.parseDouble(currentEmployee[18].replace(",", "")); 
-
         
-        // EMPLOYEE DETAILS IN PAYROLL PROCESSING PRINT OUTCOME
-        System.out.println("\n------------------------------");
-        System.out.println("EMPLOYEE DETAILS: ");
+        System.out.println("\n======| EMPLOYEE DETAILS |======");
         System.out.println("Employee Number: " + employeeNumber);
         System.out.println("Employee Name: " + firstName + " " + lastName);
         System.out.println("Birthday: " + formatBirthdayDate(currentEmployee[3]));
-        System.out.println("------------------------------");
+        System.out.println("================================");
+        System.out.println("\n======| Proccessed Payroll |======");
         
-        
-        // Calculate payroll for the WORK MONTHS of the employees (June to December).
+        // Loop through valid months in the attendance record
         for (int month = 6; month <= 12; month++) {
             String monthLabel = getMonthNameLabel(month);
             
-            // 1st Cutoff: Days 1 - 15
+            // First Cutoff Calculation (Days 1 - 15)
             double workedHoursCutoff1 = getTotalHoursWorked(employeeNumber, month, 1, 15);
             double grossSalaryCutoff1 = workedHoursCutoff1 * hourlyRate;
             
-            // 1ST CUTOFF PRINT OUTCOME
-            System.out.println("\nPAYROLL (" + monthLabel.toUpperCase() + "):");
-            System.out.println("1st Cutoff Date: " + monthLabel + " " + "15");
-            System.out.println("Total Hours Worked: " + workedHoursCutoff1);
-            System.out.println("Gross Salary: PHP " + grossSalaryCutoff1);
-            System.out.println("Net Salary: PHP " + grossSalaryCutoff1); // No deductions are applied in the first cutoff.
+            System.out.println("\n-----------------------------------");
+            System.out.println("PAYROLL (" + monthLabel.toUpperCase() + "):");
+            printPayrollResults(monthLabel, "1 - 15", workedHoursCutoff1, grossSalaryCutoff1, grossSalaryCutoff1);
             
-            // 2nd Cutoff: Days 16 - 31
-            double workedHoursCutoff2 = getTotalHoursWorked(employeeNumber, month, 16, 31);
+            // Second Cutoff Calculation (Days 16 - End of Month)
+            int endOfMonth = (month == 6 || month == 9 || month == 11) ? 30 : 31; 
+            double workedHoursCutoff2 = getTotalHoursWorked(employeeNumber, month, 16, endOfMonth);
             double grossSalaryCutoff2 = workedHoursCutoff2 * hourlyRate;
-            double monthlyGrossTotal = grossSalaryCutoff1 + grossSalaryCutoff2; // Combine BOTH CUTOFFS to determine MONTHLY GOVERNMENT CONTRIBUTIONS.
+            double monthlyGrossTotal = grossSalaryCutoff1 + grossSalaryCutoff2;
             
-            // GOVERNMENT DEDUCTIONS TO BE DEDUCTED FROM THE 2ND CUTOFF PAY.
-            double sssContribution = calculateSSS(monthlyGrossTotal);
-            double philHealthContribution = calculatePhilHealth(monthlyGrossTotal);
-            double pagIbigContribution = calculatePagIbig(monthlyGrossTotal);
+            // Statutory Deductions (Applied on total monthly gross)
+            double SSS = 0, philHealth = 0, pagIbig = 0, withholdingTax = 0;
+            if (monthlyGrossTotal > 0) {
+                SSS = calculateSSS(monthlyGrossTotal);
+                philHealth = calculatePhilHealth(monthlyGrossTotal);
+                pagIbig = calculatePagIbig(monthlyGrossTotal);
+                withholdingTax = calculateWithholdingTax(monthlyGrossTotal, SSS, philHealth, pagIbig);
+            }
             
-            // If the employee did not work, this ensures deductions are automatically 0.
-            if (monthlyGrossTotal == 0) {
-            sssContribution = 0;
-            philHealthContribution = 0;
-            pagIbigContribution = 0;}
+            double totalDeductions = SSS + philHealth + pagIbig + withholdingTax;
+            double netSalaryCutoff2 = grossSalaryCutoff2 - totalDeductions;
             
-            // Calculate TAX based on the income remaining after mandatory government contributions.
-            double withholdingTax = calculateWithholdingTax (monthlyGrossTotal, sssContribution, philHealthContribution, pagIbigContribution);
-            double totalDeductions = sssContribution + philHealthContribution + pagIbigContribution + withholdingTax;
-            double netSalaryCutoff2 = grossSalaryCutoff2 - totalDeductions; // FINAL NET SALARY for the 2nd Cutoff.
+            printPayrollResults(monthLabel, "16 - 30/31", workedHoursCutoff2, grossSalaryCutoff2, netSalaryCutoff2);
             
-            // 2ND CUTOFF PRINT OUTCOME
-            System.out.println("\n2nd Cutoff Date: " + monthLabel + " " + "30");
-            System.out.println("Total Hours Worked: " + workedHoursCutoff2);
-            System.out.println("Gross Salary: PHP " + grossSalaryCutoff2);
-            System.out.println("EACH DEDUCTION:");
-            System.out.println("- SSS: PHP " + sssContribution);
-            System.out.println("- PhilHealth: PHP " + philHealthContribution);
-            System.out.println("- Pag-IBIG: PHP " + pagIbigContribution);
-            System.out.println("- Withholding Tax: PHP " + withholdingTax);
-            System.out.println("TOTAL DEDUCTIONS: PHP " + totalDeductions);
-            System.out.println("Net Salary: PHP " + netSalaryCutoff2);
-            System.out.println("------------------------------");
+            // Display deduction breakdown (Using DecimalFormat for commas without rounding)
+            if (monthlyGrossTotal > 0) {
+                System.out.println("EACH DEDUCTION:");
+                System.out.println("- SSS: PHP " + moneyFormat.format(SSS));
+                System.out.println("- PhilHealth: PHP " + moneyFormat.format(philHealth));
+                System.out.println("- Pag-IBIG: PHP " + moneyFormat.format(pagIbig));
+                System.out.println("- Withholding Tax: PHP " + moneyFormat.format(withholdingTax));
+                System.out.println("TOTAL DEDUCTIONS: PHP " + moneyFormat.format(totalDeductions));
+                System.out.println("Net Salary: PHP " + moneyFormat.format(netSalaryCutoff2));
+                System.out.println("|====================================|");
+            }
         }
     }
-    
 
-    
-    static void loadEmployeeData(String fileName) { // Reads the employee CSV file and loads each employee record into the employeeList.
+    /**
+     * Parses the employee detail CSV and populates the employeeList.
+     * Safely handles embedded commas within quotes using regex.
+     */
+    static void loadEmployeeData(String fileName) {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
-
-            // Skip the first line because it contains column headers.
-            br.readLine();
+            br.readLine(); // Skip header row
             String line;
             while ((line = br.readLine()) != null ){
-                
-            /*
-            Split the CSV row using a regex that ignores commas inside quotation marks.
-            This prevents incorrect splitting when fields such as addresses contain commas.
-            */
                 String[] data = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"); 
-            for (int i = 0; i < data.length; i++) {
-                data[i] = data[i].replace("\"", "").trim();
-            }
-                employeeList.add(data);//Add the array directly to our list
+                for (int i = 0; i < data.length; i++) {
+                    data[i] = data[i].replace("\"", "").trim();
+                }
+                employeeList.add(data);
             }
         } catch (IOException e) {
-            System.out.println("Error: Missing Employee File: " + e.getMessage()); // Error message will appear if the CSV file is not found by the program.
+            System.out.println("Error: Missing Employee File: " + e.getMessage()); 
         }
     }
     
-    
-    // Reads the attendance CSV file and stores each record into the attendanceList.
+    /**
+     * Parses the attendance record CSV and populates the attendanceList.
+     */
     static void loadAttendanceData(String fileName) {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
-
-            // Skip header row because it only contains column names.
-            br.readLine();
+            br.readLine(); // Skip header row
             String line;
             while ((line = br.readLine()) != null ){
                 attendanceList.add(line.split(","));
             }
         } catch (IOException e) {
-            System.out.println("Error: Missing Attendance File: " + e.getMessage()); // Error message will appear if the CSV file is not found by the program.
+            System.out.println("Error: Missing Attendance File: " + e.getMessage()); 
         }
     }
     
-    
-    /*
-    Searches the employee list for a specific employee number.
-    Returns the index of the employee if found, otherwise returns -1.
-    */
+    /**
+     * Locates an employee's index in the data list using their ID number.
+     * Returns -1 if no matching record is found.
+     */
     static int findEmployeeIndex(String employeeNumber) {
        for (int i = 0; i < employeeList.size(); i++) {
             if (employeeList.get(i)[0].equals(employeeNumber)) return i;
         }
-        return -1; // Returning -1 signals that the employee number was not found after checking all records in the employee list.
+        return -1;
     }
     
-    
-    // Converts a date formatted as "MM/DD/YYYY" into a more readable format such as "June 12, 2000".
+    /** Formats MM/DD/YYYY to a readable string (e.g., "June 12, 2000"). */
     static String formatBirthdayDate(String date) { 
         String[] parts = date.split("/");
         return getMonthNameLabel(Integer.parseInt(parts[0])) + " " + parts [1] + ", " + parts[2];
     }
     
-    
-    // Returns the month name corresponding to a numeric month value.
+    /** Retrieves the string representation of a month number. */
     static String getMonthNameLabel(int monthNumber) {
-
-        // The first index is intentionally left empty so that the array index directly matches real calendar months (1 = January, 2 = February, etc.).
         String[] months = {"", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
         return months[monthNumber];
     }
     
-    
-    // Calculates the total number of hours worked by a specific employee within a given month and day range by scanning the attendance records and summing the daily work hours.
+    /**
+     * Scans attendance records to calculate total hours worked for a specific employee
+     * during a defined date range within a specific month.
+     */
     static double getTotalHoursWorked(String employeeNumber, int targetMonth, int dayStart, int dayEnd) {
         double accumulatedHours = 0;
         for (int i = 0; i < attendanceList.size(); i++) {
             String[] record = attendanceList.get(i);
-
-            // Attendance record index 0 stores the employee number.
+            
             if (record[0].equals(employeeNumber)) {
                 String[] dateParts = record[3].split("/");
                 int month = Integer.parseInt(dateParts[0]);
                 int day = Integer.parseInt(dateParts[1]);
-                if (month == targetMonth && day >= dayStart && day <= dayEnd) { // Checks if the record falls within the specified month and date range.
+                if (month == targetMonth && day >= dayStart && day <= dayEnd) { 
                     accumulatedHours += computeDailyWorkHours(record[4], record[5]);
                 }
             }
@@ -332,99 +297,70 @@ public class MotorPHSystem {
         return accumulatedHours;
     }
 
-    
-    // Computes the number of hours worked in a day while applying company attendance policies such as the 10-minute grace period, the 5:00 PM work cutoff, and the 1-hour lunch break deduction.
-    static double computeDailyWorkHours(String timeIn, String timeOut) {
-        String[] inParts = timeIn.split(":");
-        int hourIn = Integer.parseInt(inParts[0]);
-        int minuteIn = Integer.parseInt(inParts[1]);
-        
-        // 10 Minute Grace Period Policy (8:00 AM to 8:10 AM = On Time while 8:11 onwards is considered LATE).
-        int effectiveMinuteIn;
-        if (hourIn < 8) {
-            effectiveMinuteIn = 0; 
-        } else if (hourIn == 8 && minuteIn <= 10) {
-            effectiveMinuteIn = 0;
-        } else {
-            effectiveMinuteIn = (hourIn - 8) * 60 + minuteIn;
-        }
+    /**
+     * Calculates hours worked in a single shift using the java.time API.
+     * Enforces company policies: 10-minute grace period, 5 PM strict cutoff, and lunch deductions.
+     */
+    static double computeDailyWorkHours(String timeInStr, String timeOutStr) {
+        try {
+            DateTimeFormatter format = DateTimeFormatter.ofPattern("H:mm");
+            LocalTime timeIn = LocalTime.parse(timeInStr.trim(), format);
+            LocalTime timeOut = LocalTime.parse(timeOutStr.trim(), format);
 
-        String[] outParts = timeOut.split(":");
-        int hourOut = Integer.parseInt(outParts[0]);
-        int minuteOut = Integer.parseInt(outParts[1]);
-        
-        int effectiveHourOut = hourOut;
-        int effectiveMinuteOut = minuteOut;
-        
-        // Work hours end STRICTLY AT 5:00 PM (17:00) (NO OVERTIME COUNTED).
-        if (hourOut >= 17) {
-            effectiveHourOut = 17;
-            effectiveMinuteOut = 0;
-        }
+            LocalTime shiftStart = LocalTime.of(8, 0);
+            
+            LocalTime graceLimit = LocalTime.of(8, GRACE_PERIOD_LIMIT); 
+            
+            LocalTime effectiveIn = timeIn;
+            if (timeIn.isBefore(shiftStart)) {
+                effectiveIn = shiftStart; 
+            } else if (timeIn.isAfter(shiftStart) && !timeIn.isAfter(graceLimit)) {
+                effectiveIn = shiftStart; 
+            }
 
-        int startTotalMinutes = (8 * 60) + effectiveMinuteIn;
-        int endTotalMinutes = (effectiveHourOut * 60) + effectiveMinuteOut;
+            LocalTime shiftEnd = LocalTime.of(SHIFT_END_HOUR, 0);
+            LocalTime effectiveOut = timeOut.isAfter(shiftEnd) ? shiftEnd : timeOut;
 
-        // Deduct a 1-hour unpaid lunch break if the employee worked more than 4 hours.
-        double totalMinutes = endTotalMinutes - startTotalMinutes; 
-        if (totalMinutes > 240){
-        totalMinutes -=60; 
+            if (effectiveOut.isBefore(effectiveIn)) return 0.0;
+
+            long minutes = Duration.between(effectiveIn, effectiveOut).toMinutes();
+            
+            if (minutes > LUNCH_THRESHOLD_MINS) {
+                minutes -= LUNCH_DEDUCTION_MINS;
+            }
+
+            return Math.max(0, minutes / 60.0); // Raw unrounded division
+        } catch (Exception e) {
+            return 0.0; // Gracefully handles empty or malformed time entries
         }
-        return Math.max(0, totalMinutes / 60.0);
     }
    
-    
-    // Determines the employee's SSS contribution based on their salary using the official contribution table ranges.
-   public static double calculateSSS(double salary) {
-        if (salary < 3250) return 135.00;
-        if (salary < 3750) return 157.50;
-        if (salary < 4250) return 180.00;
-        if (salary < 4750) return 202.50;
-        if (salary < 5250) return 225.00;
-        if (salary < 5750) return 247.50;
-        if (salary < 6250) return 270.00;
-        if (salary < 6750) return 292.50;
-        if (salary < 7250) return 315.00;
-        if (salary < 7750) return 337.50;
-        if (salary < 8250) return 360.00;
-        if (salary < 8750) return 382.50;
-        if (salary < 9250) return 405.00;
-        if (salary < 9750) return 427.50;
-        if (salary < 10250) return 450.00;
-        if (salary < 10750) return 472.50;
-        if (salary < 11250) return 495.00;
-        if (salary < 11750) return 517.50;
-        if (salary < 12250) return 540.00;
-        if (salary < 12750) return 562.50;
-        if (salary < 13250) return 585.00;
-        if (salary < 13750) return 607.50;
-        if (salary < 14250) return 630.00;
-        if (salary < 14750) return 652.50;
-        if (salary < 15250) return 675.00;
-        if (salary < 15750) return 697.50;
-        if (salary < 16250) return 720.00;
-        if (salary < 16750) return 742.50;
-        if (salary < 17250) return 765.00;
-        if (salary < 17750) return 787.50;
-        if (salary < 18250) return 810.00;
-        if (salary < 18750) return 832.50;
-        if (salary < 19250) return 855.00;
-        if (salary < 19750) return 877.50;
-        if (salary < 20250) return 900.00;
-        if (salary < 20750) return 922.50;
-        if (salary < 21250) return 945.00;
-        if (salary < 21750) return 967.50;
-        if (salary < 22250) return 990.00;
-        if (salary < 22750) return 1012.50;
-        if (salary < 23250) return 1035.00;
-        if (salary < 23750) return 1057.50;
-        if (salary < 24250) return 1080.00;
-        if (salary < 24750) return 1102.50;
-        return 1125.00;
+    /**
+     * Computes the SSS contribution based on the official salary bracket table.
+     * @param salary
+     * @return 
+     */
+    public static double calculateSSS(double salary) {
+        double[][] sssTable = {
+            {3250, 135.0}, {3750, 157.5}, {4250, 180.0}, {4750, 202.5},
+            {5250, 225.0}, {5750, 247.5}, {6250, 270.0}, {6750, 292.5},
+            {7250, 315.0}, {7750, 337.5}, {8250, 360.0}, {8750, 382.5},
+            {9250, 405.0}, {9750, 427.5}, {10250, 450.0} 
+        };
+
+        for (double[] sssTable1 : sssTable) {
+            if (salary < sssTable1[0]) {
+                return sssTable1[1];
+            }
+        }
+        return 1125.0; // Maximum contribution cap
     }
     
-    
-    // Calculates the employee's PhilHealth contribution based on the 3% premium rate where the total premium is equally shared between the employer and the employee.
+    /**
+     * Computes PhilHealth contribution (3% premium rate equally shared).
+     * @param salary
+     * @return 
+     */
     public static double calculatePhilHealth(double salary) {
         double totalPremium;
         if (salary <= 10000) {
@@ -434,11 +370,14 @@ public class MotorPHSystem {
         } else {
             totalPremium = 1800;
         }
-        return totalPremium / 2;
+        return totalPremium / 2; // Employee's 50% share
     }
     
-    
-    // Calculates the Pag-IBIG contribution based on the salary rate, applying the 1% or 2% rule and limiting the maximum contribution to PHP 100.
+    /**
+     * Computes Pag-IBIG contribution based on 1% or 2% brackets (Max PHP 100).
+     * @param salary
+     * @return 
+     */
     public static double calculatePagIbig(double salary) {
         double contribution;
         if (salary <= 1500) {
@@ -449,10 +388,17 @@ public class MotorPHSystem {
         return Math.min(contribution, 100);
     }
 
-    
-    // Computes the withholding tax based on Philippine tax brackets after deducting mandatory government contributions from the salary.
-    public static double calculateWithholdingTax(double monthlyGross, double sss, double ph, double pi) {
-        double taxableIncome = monthlyGross - (sss + ph + pi);
+    /**
+     * Computes withholding tax based on Philippine graduated tax brackets.
+     * Executed strictly after statutory deductions are removed from gross income.
+     * @param monthlyGross
+     * @param SSS
+     * @param philHealth
+     * @param pagIbig
+     * @return 
+     */
+    public static double calculateWithholdingTax(double monthlyGross, double SSS, double philHealth, double pagIbig) {
+        double taxableIncome = monthlyGross - (SSS + philHealth + pagIbig);
         
         if (taxableIncome <= 20832) {
             return 0;
@@ -468,6 +414,16 @@ public class MotorPHSystem {
             return 200833.33 + (taxableIncome - 666667) * 0.35;
         }
     }
-    
+
+    /**
+     * Helper method to output standardized, aligned payroll records.
+     * Using DecimalFormat to keep commas, but output exact, unrounded values.
+     */
+    static void printPayrollResults(String month, String range, double hours, double gross, double net) {
+        System.out.println("Period            : " + month + " " + range);
+        System.out.println("Total Hours Worked: " + hoursFormat.format(hours) + " hours");
+        System.out.println("Gross Salary      : PHP " + moneyFormat.format(gross));
+        System.out.println("Net Salary        : PHP " + moneyFormat.format(net));
+        System.out.println("-----------------------------------");
+    }
 }
-        
