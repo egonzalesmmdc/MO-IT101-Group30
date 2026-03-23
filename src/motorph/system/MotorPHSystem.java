@@ -202,7 +202,7 @@ public class MotorPHSystem {
             double totalDeductions = SSS + philHealth + pagIbig + withholdingTax;
             double netSalaryCutoff2 = grossSalaryCutoff2 - totalDeductions;
             
-            printPayrollResults(monthLabel, "16 - 30/31", workedHoursCutoff2, grossSalaryCutoff2, netSalaryCutoff2);
+             printPayrollResults(monthLabel, "16 to " + endOfMonth, workedHoursCutoff2, grossSalaryCutoff2, netSalaryCutoff2);
             
             // Display deduction breakdown (Using DecimalFormat for commas without rounding)
             if (monthlyGrossTotal > 0) {
