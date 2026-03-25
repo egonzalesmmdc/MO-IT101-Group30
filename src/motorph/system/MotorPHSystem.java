@@ -6,10 +6,18 @@ package motorph.system;
 
 /**
  * MotorPH Payroll System - Final Verified Version
- * @author Group 30 - Gonzales, De Pano, Villamor
+ * This program processes employee payroll based on attendance records,
+ * applying company policies (cutoffs, grace periods, deductions).
+ * 
+ * Design Focus:
+ * - Uses constants to eliminate magic numbers
+ * - Separates calculation and display logic for better modularity
+ * - Includes validation to prevent malformed CSV data errors
+ * 
+ * @author Group 30
  */
 
-
+//Imported necessary libraries for user input, file reading/handling, time processing, and dynamic lists.
 import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -26,18 +34,23 @@ import java.math.RoundingMode;
 public class MotorPHSystem {
 
     // --- CSV Mapping Constants ---
+    // These indexes map CSV columns to readable labels.
+    // Using constants avoids hardcoding and prevents indexing errors if structure changes.
     static final int CSV_EMP_ID = 0;
     static final int CSV_EMP_LAST_NAME = 1;
     static final int CSV_EMP_FIRST_NAME = 2;
     static final int CSV_EMP_BIRTHDAY = 3;
     static final int CSV_EMP_HOURLY_RATE = 18;
 
+    // Column index mapping for attendance CSV file.
     static final int CSV_ATT_EMP_ID = 0;
     static final int CSV_ATT_DATE = 3;
     static final int CSV_ATT_TIME_IN = 4;
     static final int CSV_ATT_TIME_OUT = 5;
 
     // --- Work Policy Constants ---
+    // Defines rules for shift timing, grace period, and lunch deduction.
+    // These values define how attendance is interpreted into payable work hours.
     static final int SHIFT_START_HOUR = 8;
     static final int MINUTES_IN_HOUR = 60;
     static final int LUNCH_THRESHOLD_MINS = 240;
@@ -49,7 +62,8 @@ public class MotorPHSystem {
     static final String ATTENDANCE_DATA_FILE_PATH = "Data/MotorPH_Employee Data - Attendance Record.csv";
 
     // --- Government Deductions Settings (Magic Number Fixes) ---
-    // These constants replace hardcoded values in calculation methods for better maintenance.
+    // These replace hardcoded values to improve maintainability and readability.
+    // Any change in government policy can be updated here without modifying logic.
     static final double SSS_MAXIMUM_CONTRIBUTION_CAP = 1125.0; 
     static final double MIN_PHILHEALTH_CONTRIBUTION_SALARY_THRESHOLD = 10000.0;
     static final double MAX_PHILHEALTH_SALARY_THRESHOLD = 60000.0;
@@ -72,7 +86,9 @@ public class MotorPHSystem {
         hoursFormat.setRoundingMode(RoundingMode.DOWN);
     }
 
+    
     public static void main(String[] args) {
+         // Loads required data before user interaction to avoid runtime failures.
         loadEmployeeData(EMPLOYEE_DATA_FILE_PATH);
         loadAttendanceData(ATTENDANCE_DATA_FILE_PATH);
 
@@ -86,8 +102,11 @@ public class MotorPHSystem {
             System.out.print("Password: ");
             String password = inputScanner.nextLine();
 
+            // Authentication check allows two roles: employee and payroll staff.
             if ((username.equals("employee") || username.equals("payroll_staff")) && password.equals(DEFAULT_PASSWORD)) {
                 isLoggedIn = true;
+                
+                // Role-based routing: employees view profile, while payroll staff access payroll processing.
                 if (username.equals("employee")){
                     viewEmployeeProfile(inputScanner);
                 } else {
@@ -105,10 +124,11 @@ public class MotorPHSystem {
             System.out.print("Enter Employee Number: ");
             String employeeNumber = inputScanner.nextLine();
             int index = findEmployeeIndex(employeeNumber);
-            if (index == -1) {
+            if (index == -1) { // -1 indicates employee was not found in the dataset.
                 System.out.println("Error: Employee Number Does Not Exist");
                 continue;
             }
+            // Delegates display logic to a separate method for consistency and reuse.
             printEmployeeDetails(employeeList.get(index));
             break;
         }
@@ -116,6 +136,7 @@ public class MotorPHSystem {
     }
 
     static void printEmployeeDetails(String[] details) {
+        // Centralized display method to ensure consistent formatting across outputs.
         System.out.println("\n------| EMPLOYEE DETAILS |------");
         System.out.println("Employee Number: " + details[CSV_EMP_ID]);
         System.out.println("Employee Full Name: " + details[CSV_EMP_FIRST_NAME] + " " + details[CSV_EMP_LAST_NAME]);
@@ -154,7 +175,7 @@ public class MotorPHSystem {
     }
 
     static String formatCutoffPeriod(String monthLabel, int startDay, int endDay) {
-        // Uses EN DASH (–) instead of hyphen (-) per strict requirements.
+        // Formats payroll cutoff strictly as "Month Day–Day" using EN DASH.
         return monthLabel + " " + startDay + "–" + endDay;
     }
 
@@ -164,7 +185,7 @@ public class MotorPHSystem {
         System.out.println("\n======| Processed Payroll |======");
         double hourlyRate = Double.parseDouble(employeeDetails[CSV_EMP_HOURLY_RATE].replace(",", ""));
 
-        for (int month = 6; month <= 12; month++) {
+        for (int month = 6; month <= 12; month++) { // Iterate through months June to December.
             processMonthlyPayroll(employeeDetails[CSV_EMP_ID], month, hourlyRate);
         }
     }
@@ -172,18 +193,19 @@ public class MotorPHSystem {
     static void processMonthlyPayroll(String employeeID, int month, double rate) {
         String monthLabel = getMonthNameLabel(month);
 
-        // 1st Cutoff Processing
+        // 1st Cutoff Processing (Days 1 - 15)
         double firstCutoffHours = getTotalHoursWorked(employeeID, month, 1, 15);
         double firstCutoffGross = firstCutoffHours * rate;
         printPayrollResults(formatCutoffPeriod(monthLabel, 1, 15), firstCutoffHours, firstCutoffGross, firstCutoffGross);
 
-        // 2nd Cutoff Processing
-        int lastDay = (month == 6 || month == 9 || month == 11) ? 30 : 31;
+        // 2nd Cutoff Processing 
+        int lastDay = (month == 6 || month == 9 || month == 11) ? 30 : 31; // Determines last day of the month depending on month type.
         double hours2 = getTotalHoursWorked(employeeID, month, 16, lastDay);
         double gross2 = hours2 * rate;
         double monthlyGross = firstCutoffGross + gross2;
 
         if (monthlyGross > 0) {
+            // Compute deductions based on total monthly gross salary.
             double sss = calculateSSS(monthlyGross);
             double philHealth = calculatePhilHealth(monthlyGross);
             double pagIbig = calculatePagIbig(monthlyGross);
@@ -197,12 +219,16 @@ public class MotorPHSystem {
         }
     }
 
+    // Loads employee data and validates each row to avoid malformed CSV issues.
     static void loadEmployeeData(String fileName) {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
-            br.readLine();
+            br.readLine(); // Skip header row.
             String line;
             while ((line = br.readLine()) != null ){
+                // Regex ensures commas inside quoted values are not incorrectly split.
                 String[] employeeRecord = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+
+                // Validate row length to avoid IndexOutOfBoundsException.
                 if (employeeRecord.length > CSV_EMP_HOURLY_RATE) {
                     for (int i = 0; i < employeeRecord.length; i++) employeeRecord[i] = employeeRecord[i].replace("\"", "").trim();
                     employeeList.add(employeeRecord);
@@ -213,12 +239,15 @@ public class MotorPHSystem {
         }
     }
 
+    // Loads attendance records and skips incomplete rows.
     static void loadAttendanceData(String fileName) {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             br.readLine();
             String line;
             while ((line = br.readLine()) != null ){
                 String[] employeeRecord = line.split(",");
+
+                // Ensure attendance record has complete required fields
                 if (employeeRecord.length > CSV_ATT_TIME_OUT) attendanceList.add(employeeRecord);
             }
         } catch (IOException e) {
@@ -228,18 +257,20 @@ public class MotorPHSystem {
 
     static double computeDailyWorkHours(String timeInStr, String timeOutStr) {
         try {
+            // Time is parsed using 24-hour format.
             DateTimeFormatter format = DateTimeFormatter.ofPattern("H:mm");
             LocalTime in = LocalTime.parse(timeInStr.trim(), format);
             LocalTime out = LocalTime.parse(timeOutStr.trim(), format);
             LocalTime start = LocalTime.of(SHIFT_START_HOUR, 0);
             LocalTime graceLimit = LocalTime.of(SHIFT_START_HOUR, GRACE_PERIOD_LIMIT);
 
-            LocalTime effectiveIn = (in.isBefore(start) || !in.isAfter(graceLimit)) ? start : in;
-            LocalTime effectiveOut = out.isAfter(LocalTime.of(17, 0)) ? LocalTime.of(17, 0) : out;
+            LocalTime effectiveIn = (in.isBefore(start) || !in.isAfter(graceLimit)) ? start : in; // Apply grace period: late arrivals within grace are treated as on-time.
+            LocalTime effectiveOut = out.isAfter(LocalTime.of(17, 0)) ? LocalTime.of(17, 0) : out; // Cap working time at standard end-of-day shift (5 PM).
 
             if (effectiveOut.isBefore(effectiveIn)) return 0.0;
             long totalMinutes = Duration.between(effectiveIn, effectiveOut).toMinutes();
 
+            // Deduct lunch break automatically if threshold is exceeded.
             if (totalMinutes > LUNCH_THRESHOLD_MINS) totalMinutes -= LUNCH_DEDUCTION_MINS;
             return Math.max(0, totalMinutes / (double) MINUTES_IN_HOUR);
         } catch (Exception e) {
@@ -289,6 +320,7 @@ public class MotorPHSystem {
         return getMonthNameLabel(Integer.parseInt(parts[0])) + " " + parts[1] + ", " + parts[2];
     }
 
+    // Index 0 is intentionally empty, so month numbers align directly with indexes.
     static String getMonthNameLabel(int monthNum) {
         String[] months = {"", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
         return months[monthNum];
