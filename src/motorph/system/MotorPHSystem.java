@@ -265,7 +265,7 @@ public class MotorPHSystem {
         System.out.println("Employee Name: " + firstName + " " + lastName);
         System.out.println("Birthday: " + formatBirthdayDate(currentEmployee[CSV_EMP_BIRTHDAY]));
         System.out.println("================================");
-        System.out.println("\n======| Proccessed Payroll |======");
+        System.out.println("\n======| Processed Payroll |======");
         
         /*
          * Applied Payroll Month Constants
