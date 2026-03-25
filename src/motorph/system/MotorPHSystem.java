@@ -4,6 +4,12 @@
  */
 package motorph.system;
 
+/**
+ * MotorPH Payroll System - Final Verified Version
+ * @author Group 30 - Gonzales, De Pano, Villamor
+ */
+
+
 import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -16,10 +22,7 @@ import java.time.Duration;
 import java.text.DecimalFormat;
 import java.math.RoundingMode;
 
-/**
- * MotorPH Payroll System - Final Verified Version
- * @author Group 30 - Gonzales, De Pano, Villamor
- */
+
 public class MotorPHSystem {
 
     // --- CSV Mapping Constants ---
