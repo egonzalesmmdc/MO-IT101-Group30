@@ -225,7 +225,11 @@ public class MotorPHSystem {
             br.readLine(); // Skip header row.
             String line;
             while ((line = br.readLine()) != null ){
-                // Regex ensures commas inside quoted values are not incorrectly split.
+                
+                /* * Regex split: Splits the line by commas, but ignores commas found inside double quotes.
+                 * This ensures that fields containing commas (like Addresses or formatted numbers) 
+                 * are treated as a single column and don't shift the data indexes to the right.
+                 */
                 String[] employeeRecord = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
 
                 // Validate row length to avoid IndexOutOfBoundsException.
